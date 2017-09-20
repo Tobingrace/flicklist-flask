@@ -20,10 +20,15 @@ page_header = """
     <title>FlickList: LC101</title>
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
     <link rel="stylesheet" type="text/css" href="/static/style.css">
     </head>
     <body>
-        <h1>FlickList</h1>
+        <div class="main">
+        <div class="header">
+            <h1>FlickList</h1>
+        </div>
+        <div class="spacer"></div>
 """
 
 page_footer = """
@@ -34,20 +39,28 @@ page_footer = """
         });
         });
     </script>
+    </div>
     </body>
 </html>
 """
 
 # a form for adding new movies
 add_form = """
+<div class="edit">
     <form action="/add" method="post">
-        <label for="new-movie">
-            I want to add
-            <input type="text" id="new-movie" name="new-movie"/>
-            to my watchlist.
-        </label>
-        <input type="submit" value="Add It"/>
+    <h2>Edit My Watchlist</h2>
+        <div class="editsub">
+            <label for="new-movie">
+                I want to add
+                <input type="text" id="new-movie" name="new-movie"/>
+                to my watchlist.
+            </label>
+            <div style="float: right;">
+            <input type="submit" value="Add It"/>
+            </div>
+        </div>
     </form>
+    </div>
 """
 
 # TODO:
@@ -57,16 +70,20 @@ add_form = """
 
 # a form for crossing off watched movies
 crossoff_form = """
+<div class="movies">
     <form action="/add" method="post">
+    <h2>Movies to watch</h2>
+    <div class="moviessub">
         <label for="crossed-off-movie">
-            <h2> Movies to watch</h2>
             <ul>
                 {% for movie in movies %}
                     <li class="hvr-box-shadow-inset">{{ movies[movie] }}</li>
                 {% endfor%}
             </ul>
         </label>
+    </div>
     </form>
+</div>
 """
 
 # TODO:
@@ -103,11 +120,11 @@ def add_movie():
 
 @app.route("/")
 def index():
-    edit_header = "<h2>Edit My Watchlist</h2>"
+    # edit_header = "<h2>Edit My Watchlist</h2>"
 
     # build the response string
-    content = Template(page_header + edit_header +
-                       add_form + crossoff_form + page_footer)
+    content = Template(page_header + crossoff_form+
+                       add_form + page_footer)
 
     complete = render_template(content, movies=movies)
     return complete
