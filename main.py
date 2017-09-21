@@ -1,5 +1,6 @@
 from flask import Flask, request, render_template
 from jinja2 import Template
+import operator
 
 app = Flask(__name__)
 
@@ -8,6 +9,7 @@ app.config['DEBUG'] = True      # displays runtime errors in the browser, too
 movies = {0: 'The Matrix', 1: 'Vanillia Sky',
           2: 'Shawshank Redemption', 3: 'Fight Club',
           4: 'Inception'}
+
 
 page_header = """
 <!DOCTYPE html>
@@ -20,6 +22,7 @@ page_header = """
     <title>FlickList: LC101</title>
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
     <link rel="stylesheet" type="text/css" href="/static/style.css">
     </head>
@@ -35,7 +38,17 @@ page_footer = """
     <script type="text/javascript">
         $(document).ready(function ($) {
         $('li').click(function () {
-            this.style.textDecoration = this.style.textDecoration == 'line-through' ? 'none' : 'line-through';
+            var movie = this.textContent
+
+            window.alert("Do you want to cross off " + movie + " from your list?");
+            if (confirm("Press ok to cross off " + movie) == true) 
+            {
+                this.style.textDecoration = this.style.textDecoration == 'line-through' ? 'none' : 'line-through';
+            } 
+            else 
+            {
+                txt = "action canceled";
+            }
         });
         });
     </script>
@@ -51,12 +64,14 @@ add_form = """
     <h2>Edit My Watchlist</h2>
         <div class="editsub">
             <label for="new-movie">
-                I want to add
+            <br></br>
+               <p> I want to add
                 <input type="text" id="new-movie" name="new-movie"/>
-                to my watchlist.
+                to my watchlist.</p>
+                <p></p>
             </label>
             <div style="float: right;">
-            <input type="submit" value="Add It"/>
+            <input style="font: 'Roboto', sans-serif; font-weight: bold;" type="submit" value="Add It"/>
             </div>
         </div>
     </form>
@@ -71,8 +86,8 @@ add_form = """
 # a form for crossing off watched movies
 crossoff_form = """
 <div class="movies">
-    <form action="/add" method="post">
     <h2>Movies to watch</h2>
+    <form action="/crossoff" method="post">
     <div class="moviessub">
         <label for="crossed-off-movie">
             <ul>
@@ -93,29 +108,64 @@ crossoff_form = """
 # your crossoff_form.
 
 
-@app.route("/crossoff", methods=['POST'])
+@app.route("/crossoff", methods=['GET', 'POST'])
 def crossoff_movie():
-    crossed_off_movie = request.form['crossoff_form']
+    crossed_off_movie = request.form['crossed-off-movie']
+    
+    remove_movies(crossed_off_movie)
 
-    content = crossoff_form
+    crossed_off_movie_element = "<div class='crossoff'> <strike>" + crossed_off_movie + "</strike>"
+    confirmation = crossed_off_movie_element + " has been crossed off your Watchlist.  <form action='/' method='GET'><input style='font-size: large;'type='submit' value='Home'/>"
 
-    return content
+    content = Template(page_header + "<p>" + confirmation + "</p> </div>" + "<div class='spacer2'></div>" + page_footer)
+
+    complete = render_template(content)
+
+    return complete
 
 # TODO:
 # modify the crossoff_form above to use a dropdown (<select>) instead of
 # an input text field (<input type="text"/>)
 
+crossoff_form2 = """
+<div class="editl">
+    <form action="/crossoff" method="post">
+    <h2>Movies to watch</h2>
+        <div class="editsub">
+            <label>
+                <br></br>
+                <p> I want to cross off
+                <select name="crossed-off-movie">
+                    {% for movie in movies %}
+                        <option style="text-align: right;">{{ movies[movie] }}</option>
+                    {% endfor%}
+                </select>
+                from my watchlist.</p>
+                <p></p>
+            </label>
+            <div style="float: right;">
+            <input style="font: 'Roboto', sans-serif; font-weight: bold;" type="submit" value="Cross It Off"/>
+            </div>
+        </div>
+    </form>
+</div>
+"""
+
 
 @app.route("/add", methods=['POST'])
 def add_movie():
     new_movie = request.form['new-movie']
+    if new_movie != '':
+        add_movies(new_movie)
 
     # build response content
-    new_movie_element = "<strong>" + new_movie + "</strong>"
-    sentence = new_movie_element + " has been added to your Watchlist!"
-    content = page_header + "<p>" + sentence + "</p>" + page_footer
+    new_movie_element = "<div class='crossoff'> <strong>" + new_movie + "</strong>"
+    sentence = new_movie_element + " has been added to your Watchlist! <form action='/' method='GET'><input style='font-size: large;'type='submit' value='Home'/>"
+    content = Template(page_header + "<p>" + sentence + "</p> </div>" + "<div class='spacer2'></div>" + page_footer)
 
-    return content
+    complete = render_template(content)
+
+    return complete
 
 
 @app.route("/")
@@ -123,11 +173,31 @@ def index():
     # edit_header = "<h2>Edit My Watchlist</h2>"
 
     # build the response string
-    content = Template(page_header + crossoff_form+
-                       add_form + page_footer)
+    content = Template(page_header + "<div class='holding'>" + add_form + crossoff_form2 + "</div>" + crossoff_form + page_footer)
 
     complete = render_template(content, movies=movies)
     return complete
 
+
+def add_movies(title):
+    name = title
+
+    value = max(sorted(movies))
+    print(value)
+
+    movies[value+1] = name
+
+    return
+
+
+def remove_movies(title):
+    name = title
+    global movies
+
+    movies = {k: v for k, v in movies.items() if v != name}
+    
+    return movies
+
+    
 
 app.run()
